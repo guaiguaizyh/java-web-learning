@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.ClazzMapper">
+    <!-- 列表分页查询-->
+    <select id="clist" resultType="com.itheima.pojo.Clazz">
+        select
+            c.*,e.name as masterName,
+            (case when now() &lt; c.begin_date then '未开班'
+                  when now() &gt; c.end_date then '已结课'
+                  else '在读'
+                end) as status
+            from clazz c
+            left join emp e on c.master_id = e.id
+        <where>
+            <if test="name != null and name != ''">
+                c.name like concat('%',#{name},'%')
+            </if>
+            <if test="begin != null and end != null">
+                and e.entry_date between #{begin} and #{end}
+            </if>
+        </where>
+    </select>
+<!--    删除列表-->
+<!--    <delete id="delete">-->
+<!--    DELETE FROM dept WHERE id = #{id}-->
+<!--    </delete>-->
+<!--    添加列表-->
+    <insert id="insert" parameterType="com.itheima.pojo.Clazz">
+        insert into clazz (name, room, begin_date, end_date, master_id, subject, create_time, update_time)
+        values (#{name},#{room},#{beginDate},#{endDate},#{masterId},#{subject},#{createTime},#{updateTime})
+    </insert>
+
+<!--    修改列表-->
+<!--    数据回显-->
+    <select id="getById" resultType="com.itheima.pojo.Clazz">
+        select
+            c.*, e.name as masterName,
+            (case
+                 when now() &lt; c.begin_date then '未开班'
+                 when now() &gt; c.end_date then '已结课'
+                 else '在读'
+                end) as status
+        from clazz c
+                 left join emp e on c.master_id = e.id
+        where c.id = #{id}
+    </select>
+<!--    动态更新列表-->
+    <update id="updateById" parameterType="com.itheima.pojo.Clazz">
+        update clazz set name = #{name}, room = #{room}, begin_date = #{beginDate}, end_date = #{endDate}, master_id = #{masterId}, subject = #{subject}, create_time = #{createTime}, update_time = #{updateTime} where id = #{id}
+    </update>
+
+
+</mapper>

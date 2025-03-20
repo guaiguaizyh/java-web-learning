@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: tlias-web-management
+  #mysql连接配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/tlias
+    username: root
+    password: 123456
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+    mapper-locations: classpath*:mapper/**/*.xml
+    pagehelper:
+      reasonable: true
+      #分页合理化：
+      #当该参数设置为true时，pageNum<=0时会查询第一页，
+      #pageNum>pages（超过总数时），会查询最后一页。
+      #默认false 时，直接根据参数进行查询。
+      helper-dialect: mysql
+    #spring事务管理日志,可以在控制看到和事务相关的日志信息了
+    logging:
+      level:
+        org.springframework.jdbc.support.JdbcTransactionManager: debug
+#configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    map-underscore-to-camel-case: true
+#    mapper-locations: classpath:/com/itheima/EmpExprMapper.xml
+#    pagehelper:
+#      reasonable: true
+#      #分页合理化：
+#      #当该参数设置为true时，pageNum<=0时会查询第一页，
+#      #pageNum>pages（超过总数时），会查询最后一页。
+#      #默认false 时，直接根据参数进行查询。
+#      helper-dialect: mysql
+#    #spring事务管理日志,可以在控制看到和事务相关的日志信息了
+#    logging:
+#      level:
+#        org.springframework.jdbc.support.JdbcTransactionManager: debug
+#上传比较大的文件
+servlet:
+  multipart:
+    max-file-size: 10MB #最大单个文件大小
+    max-request-size: 100MB #最大请求大小（包括所有文件和表单数据）
+
+aliyun:
+  oss:
+    endpoint: https://oss-cn-beijing.aliyuncs.com
+    bucket-name: java-aizyh
+    region: cn-beijing
