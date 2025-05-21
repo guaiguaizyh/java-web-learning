@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="250" cy="250" r="240" fill="#E6F3FF"/>
+  
+  <!-- Doctor Figure -->
+  <path d="M200 150 h100 v200 h-100 z" fill="#FFFFFF" stroke="#409EFF" stroke-width="4"/>
+  <circle cx="250" cy="120" r="40" fill="#FFFFFF" stroke="#409EFF" stroke-width="4"/>
+  
+  <!-- Stethoscope -->
+  <path d="M220 180 C180 200, 180 250, 220 270" stroke="#409EFF" stroke-width="4" fill="none"/>
+  <circle cx="220" cy="270" r="10" fill="#409EFF"/>
+  
+  <!-- Medical Cross -->
+  <rect x="235" y="200" width="30" height="80" fill="#409EFF"/>
+  <rect x="210" y="225" width="80" height="30" fill="#409EFF"/>
+</svg> 
