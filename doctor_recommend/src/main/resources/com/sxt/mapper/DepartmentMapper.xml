@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.DepartmentMapper">
+    <!-- 查询科室列表 -->
+    <select id="selectDepartmentList" resultType="com.sxt.pojo.Department">
+        SELECT 
+            d.department_id as departmentId,
+            d.department_name as departmentName,
+            d.description,
+            COUNT(DISTINCT doc.doctor_id) as doctorCount,
+            COUNT(DISTINCT r.review_id) as reviewCount,
+            COUNT(DISTINCT e.expertise_id) as expertiseCount,
+            ROUND(COALESCE(AVG(doc.average_rating), 0), 1) as averageRating
+        FROM departments d
+        LEFT JOIN doctors doc ON d.department_id = doc.department_id
+        LEFT JOIN reviews r ON doc.doctor_id = r.doctor_id
+        LEFT JOIN doctor_expertises de ON doc.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        <where>
+            <if test="departmentName != null and departmentName != ''">
+                d.department_name LIKE CONCAT('%', #{departmentName}, '%')
+            </if>
+            <if test="description != null and description != ''">
+                AND d.description LIKE CONCAT('%', #{description}, '%')
+            </if>
+        </where>
+        GROUP BY d.department_id, d.department_name, d.description
+        <choose>
+            <when test="sortField == 'departmentId' and sortOrder == 'asc'">
+                ORDER BY d.department_id ASC
+            </when>
+            <when test="sortField == 'departmentId' and sortOrder == 'desc'">
+                ORDER BY d.department_id DESC
+            </when>
+            <when test="sortField == 'departmentName' and sortOrder == 'asc'">
+                ORDER BY d.department_name ASC
+            </when>
+            <when test="sortField == 'departmentName' and sortOrder == 'desc'">
+                ORDER BY d.department_name DESC
+            </when>
+            <when test="sortField == 'doctorCount' and sortOrder == 'asc'">
+                ORDER BY doctorCount ASC
+            </when>
+            <when test="sortField == 'doctorCount' and sortOrder == 'desc'">
+                ORDER BY doctorCount DESC
+            </when>
+            <when test="sortField == 'averageRating' and sortOrder == 'asc'">
+                ORDER BY averageRating ASC
+            </when>
+            <when test="sortField == 'averageRating' and sortOrder == 'desc'">
+                ORDER BY averageRating DESC
+            </when>
+            <when test="sortField == 'expertiseCount' and sortOrder == 'asc'">
+                ORDER BY expertiseCount ASC
+            </when>
+            <when test="sortField == 'expertiseCount' and sortOrder == 'desc'">
+                ORDER BY expertiseCount DESC
+            </when>
+            <otherwise>
+                ORDER BY d.department_id ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 根据ID查询科室 -->
+    <select id="selectById" resultType="com.sxt.pojo.Department">
+        SELECT 
+            d.department_id as departmentId,
+            d.department_name as departmentName,
+            d.description,
+            COUNT(DISTINCT doc.doctor_id) as doctorCount,
+            COUNT(DISTINCT r.review_id) as reviewCount,
+            COUNT(DISTINCT e.expertise_id) as expertiseCount,
+            ROUND(COALESCE(AVG(doc.average_rating), 0), 1) as averageRating
+        FROM departments d
+        LEFT JOIN doctors doc ON d.department_id = doc.department_id
+        LEFT JOIN reviews r ON doc.doctor_id = r.doctor_id
+        LEFT JOIN doctor_expertises de ON doc.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        WHERE d.department_id = #{departmentId}
+        GROUP BY d.department_id, d.department_name, d.description
+    </select>
+
+    <!-- 检查科室名称是否存在（排除自身） -->
+    <select id="checkDepartmentNameExists" resultType="java.lang.Integer">
+        SELECT COUNT(1) 
+        FROM departments 
+        WHERE department_name = #{departmentName}
+        <if test="departmentId != null">
+            AND department_id != #{departmentId}
+        </if>
+    </select>
+
+    <!-- 添加科室 -->
+    <insert id="insert" parameterType="com.sxt.pojo.Department" useGeneratedKeys="true" keyProperty="departmentId">
+        INSERT INTO departments (department_name, description)
+        VALUES (#{departmentName}, #{description})
+    </insert>
+
+    <!-- 更新科室 -->
+    <update id="updateById" parameterType="com.sxt.pojo.Department">
+        UPDATE departments
+        SET department_name = #{et.departmentName},
+            description = #{et.description}
+        WHERE department_id = #{et.departmentId}
+    </update>
+
+    <!-- 删除科室下的所有医生 -->
+    <delete id="deleteDoctorsByDepartmentId">
+        DELETE FROM doctors WHERE department_id = #{departmentId}
+    </delete>
+
+    <!-- 删除科室 -->
+    <delete id="deleteById">
+        DELETE FROM departments WHERE department_id = #{departmentId}
+    </delete>
+
+    <!-- 检查科室下是否有医生 -->
+    <select id="checkDoctorsExist" resultType="java.lang.Integer">
+        SELECT COUNT(1) FROM doctors WHERE department_id = #{departmentId}
+    </select>
+
+    <!-- 添加高级查询科室列表的SQL实现 -->
+    <select id="advancedSelectDepartmentList" resultType="com.sxt.pojo.Department">
+        SELECT 
+            d.department_id as departmentId,
+            d.department_name as departmentName,
+            d.description,
+            COUNT(DISTINCT doc.doctor_id) as doctorCount,
+            COUNT(DISTINCT r.review_id) as reviewCount,
+            COUNT(DISTINCT e.expertise_id) as expertiseCount,
+            ROUND(COALESCE(AVG(doc.average_rating), 0), 1) as averageRating
+        FROM departments d
+        LEFT JOIN doctors doc ON d.department_id = doc.department_id
+        LEFT JOIN reviews r ON doc.doctor_id = r.doctor_id
+        LEFT JOIN doctor_expertises de ON doc.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        <where>
+            <if test="departmentName != null and departmentName != ''">
+                d.department_name LIKE CONCAT('%', #{departmentName}, '%')
+            </if>
+            <if test="description != null and description != ''">
+                AND d.description LIKE CONCAT('%', #{description}, '%')
+            </if>
+        </where>
+        GROUP BY d.department_id, d.department_name, d.description
+        <choose>
+            <when test="sortField == 'departmentId' and sortOrder == 'asc'">
+                ORDER BY d.department_id ASC
+            </when>
+            <when test="sortField == 'departmentId' and sortOrder == 'desc'">
+                ORDER BY d.department_id DESC
+            </when>
+            <when test="sortField == 'departmentName' and sortOrder == 'asc'">
+                ORDER BY d.department_name ASC
+            </when>
+            <when test="sortField == 'departmentName' and sortOrder == 'desc'">
+                ORDER BY d.department_name DESC
+            </when>
+            <when test="sortField == 'doctorCount' and sortOrder == 'asc'">
+                ORDER BY doctorCount ASC
+            </when>
+            <when test="sortField == 'doctorCount' and sortOrder == 'desc'">
+                ORDER BY doctorCount DESC
+            </when>
+            <when test="sortField == 'averageRating' and sortOrder == 'asc'">
+                ORDER BY averageRating ASC
+            </when>
+            <when test="sortField == 'averageRating' and sortOrder == 'desc'">
+                ORDER BY averageRating DESC
+            </when>
+            <when test="sortField == 'expertiseCount' and sortOrder == 'asc'">
+                ORDER BY expertiseCount ASC
+            </when>
+            <when test="sortField == 'expertiseCount' and sortOrder == 'desc'">
+                ORDER BY expertiseCount DESC
+            </when>
+            <otherwise>
+                ORDER BY d.department_id ASC
+            </otherwise>
+        </choose>
+    </select>
+</mapper> 

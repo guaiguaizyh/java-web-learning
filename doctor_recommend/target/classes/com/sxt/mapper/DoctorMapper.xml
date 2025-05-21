@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.DoctorMapper">
+    
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.sxt.pojo.Doctor">
+        <id column="doctor_id" property="doctorId"/>
+        <result column="name" property="name"/>
+        <result column="gender" property="gender"/>
+        <result column="age" property="age"/>
+        <result column="positions_id" property="positionsId"/> 
+        <result column="department_id" property="departmentId"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="average_rating" property="averageRating"/>
+        <result column="rating_count" property="ratingCount"/>
+        <result column="department_name" property="departmentName"/> 
+        <result column="expertise_list" property="expertiseList"/> 
+        <result column="work_years" property="workYears"/>
+        <result column="positions_name" property="positionsName"/>
+    </resultMap>
+
+    <!-- 查询医生列表 -->
+    <select id="selectDoctorList" resultType="com.sxt.pojo.vo.DoctorVO">
+        SELECT 
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            d.average_rating, 
+            d.rating_count,
+            d.work_years,
+            p.positions_name,
+            GROUP_CONCAT(e.expertise_name SEPARATOR ',') as expertise_list_str,
+            GROUP_CONCAT(CONCAT(e.expertise_id, ':', e.expertise_name, ':', de.proficiency) SEPARATOR ';') as expertise_details
+        FROM doctors d
+        LEFT JOIN departments dept ON d.department_id = dept.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        LEFT JOIN positions p ON d.positions_id = p.positions_id
+        <where>
+            <if test="name != null and name != ''">
+                AND d.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="departmentId != null">
+                AND d.department_id = #{departmentId}
+            </if>
+            <if test="gender != null and gender != ''">
+                AND d.gender = #{gender}
+            </if>
+            <if test="minAge != null">
+                AND d.age >= #{minAge}
+            </if>
+            <if test="maxAge != null">
+                AND d.age &lt;= #{maxAge}
+            </if>
+        </where>
+        GROUP BY d.doctor_id
+        <choose>
+            <when test="sortBy == 'name'">
+                ORDER BY d.name
+            </when>
+            <when test="sortBy == 'age'">
+                ORDER BY d.age
+            </when>
+            <when test="sortBy == 'rating'">
+                ORDER BY d.average_rating
+            </when>
+            <when test="sortBy == 'experience'">
+                ORDER BY d.work_years
+            </when>
+            <otherwise>
+                ORDER BY d.doctor_id
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder != null and sortOrder == 'DESC'">
+                DESC
+            </when>
+            <otherwise>
+                ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 根据ID查询医生 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT 
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.age,
+            d.positions_id,
+            d.department_id,
+            d.avatar_url,
+            d.average_rating,
+            d.rating_count,
+            d.work_years,
+            dp.department_name,
+            p.positions_name,
+            GROUP_CONCAT(e.expertise_name SEPARATOR ',') AS expertise_list_str,
+            GROUP_CONCAT(CONCAT(e.expertise_id, ':', e.expertise_name, ':', de.proficiency) SEPARATOR ';') as expertise_details
+        FROM doctors d
+        LEFT JOIN departments dp ON d.department_id = dp.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        LEFT JOIN positions p ON d.positions_id = p.positions_id
+        WHERE d.doctor_id = #{doctorId}
+        GROUP BY 
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.age,
+            d.positions_id,
+            d.department_id,
+            d.avatar_url,
+            d.average_rating,
+            d.rating_count,
+            d.work_years,
+            dp.department_name,
+            p.positions_name
+    </select>
+
+    <!-- 添加医生 -->
+    <insert id="insert" parameterType="com.sxt.pojo.Doctor" useGeneratedKeys="true" keyProperty="doctorId">
+        INSERT INTO doctors (
+            name, gender, age, positions_id, department_id, 
+            avatar_url, average_rating, rating_count, work_years
+        ) VALUES (
+            #{name}, #{gender}, #{age}, #{positionsId}, #{departmentId},
+            #{avatarUrl}, #{averageRating}, #{ratingCount}, #{workYears}
+        )
+    </insert>
+
+    <!-- 更新医生信息 -->
+    <update id="updateById" parameterType="com.sxt.pojo.Doctor">
+        UPDATE doctors
+        <set>
+            <if test="et.name != null and et.name != ''">name = #{et.name},</if>
+            <if test="et.gender != null and et.gender != ''">gender = #{et.gender},</if>
+            <if test="et.age != null and et.age > 0">age = #{et.age},</if>
+            <if test="et.positionsId != null">positions_id = #{et.positionsId},</if>
+            <if test="et.departmentId != null and et.departmentId > 0">department_id = #{et.departmentId},</if>
+            <if test="et.avatarUrl != null and et.avatarUrl != ''">avatar_url = #{et.avatarUrl},</if>
+            <if test="et.averageRating != null">average_rating = #{et.averageRating},</if>
+            <if test="et.ratingCount != null and et.ratingCount >= 0">rating_count = #{et.ratingCount},</if>
+            <if test="et.workYears != null">work_years = #{et.workYears}</if>
+        </set>
+        WHERE doctor_id = #{et.doctorId}
+    </update>
+
+    <!-- 删除医生 -->
+    <delete id="deleteById">
+        DELETE FROM doctors WHERE doctor_id = #{doctorId}
+    </delete>
+
+    <!-- RecommendedDoctorDTO 结果映射 -->
+    <resultMap id="RecommendedDoctorDTOResultMap" type="com.sxt.pojo.RecommendedDoctorDTO">
+        <id column="doctor_id" property="doctorId"/>
+        <result column="name" property="name"/>
+        <result column="gender" property="gender"/>
+        <result column="department_name" property="departmentName"/>
+        <result column="positions_id" property="positionsId"/>
+        <result column="positions_name" property="positionsName"/>
+        <result column="work_years" property="workYears"/>
+        <result column="average_rating" property="averageRating"/>
+        <result column="avatar_url" property="avatarUrl"/>
+    </resultMap>
+
+    <!-- 根据科室 ID 列表查询医生 -->
+    <select id="findDoctorsInDepartmentsOrderedByRating" resultMap="RecommendedDoctorDTOResultMap">
+        SELECT
+            d.doctor_id,
+            d.name,
+            d.gender,
+            dept.department_name,
+            d.positions_id,
+            p.positions_name,
+            d.work_years,
+            d.average_rating,
+            d.avatar_url
+        FROM
+            doctors d
+        JOIN
+            departments dept ON d.department_id = dept.department_id
+        LEFT JOIN 
+            positions p ON d.positions_id = p.positions_id
+        WHERE
+            d.department_id IN
+            <foreach item="item" index="index" collection="departmentIds"
+                     open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        ORDER BY
+            d.average_rating DESC, d.rating_count DESC
+    </select>
+
+    <!-- 查询评分最高的 Top N 医生 -->
+    <select id="findTopRatedDoctors" resultMap="RecommendedDoctorDTOResultMap">
+        SELECT
+            d.doctor_id,
+            d.name,
+            d.gender,
+            dept.department_name,
+            d.positions_id,
+            p.positions_name,
+            d.work_years,
+            d.average_rating,
+            d.avatar_url
+        FROM
+            doctors d
+        JOIN
+            departments dept ON d.department_id = dept.department_id
+        LEFT JOIN 
+            positions p ON d.positions_id = p.positions_id
+        ORDER BY
+            d.average_rating DESC, d.rating_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据科室名称查询医生，模糊匹配 -->
+    <select id="selectDoctorsByDepartmentName" resultMap="BaseResultMap">
+        SELECT 
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.positions_id,
+            d.department_id,
+            d.avatar_url,
+            d.average_rating,
+            d.rating_count,
+            d.work_years,
+            dept.department_name,
+            p.positions_name,
+            GROUP_CONCAT(DISTINCT e.expertise_name SEPARATOR ',') as expertise_list
+        FROM 
+            doctors d
+        JOIN 
+            departments dept ON d.department_id = dept.department_id
+        LEFT JOIN 
+            positions p ON d.positions_id = p.positions_id
+        LEFT JOIN 
+            doctor_expertises de ON d.doctor_id = de.doctor_id
+        LEFT JOIN 
+            expertises e ON de.expertise_id = e.expertise_id
+        WHERE 
+            dept.department_name LIKE CONCAT('%', #{department}, '%')
+        GROUP BY 
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.positions_id,
+            d.department_id,
+            d.avatar_url,
+            d.average_rating,
+            d.rating_count,
+            d.work_years,
+            dept.department_name,
+            p.positions_name
+        ORDER BY 
+            d.average_rating DESC, d.rating_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- DoctorVOResultMap -->
+    <resultMap id="DoctorVOResultMap" type="com.sxt.pojo.vo.DoctorVO"> 
+        <id column="doctor_id" property="doctorId"/>
+        <result column="name" property="name"/>
+        <result column="gender" property="gender"/>
+        <result column="age" property="age"/>
+        <result column="positions_id" property="positionsId"/>
+        <result column="department_id" property="departmentId"/>
+        <result column="department_name" property="departmentName"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="average_rating" property="averageRating"/>
+        <result column="rating_count" property="ratingCount"/>
+        <result column="work_years" property="workYears"/>
+        <result column="positions_name" property="positionsName"/>
+        <result column="expertise_names" property="expertiseListStr"/>
+        <result column="expertise_details" property="expertiseDetails"/>
+    </resultMap>
+
+    <!-- 查询医生列表 -->
+    <select id="selectDoctorVoList" resultMap="DoctorVOResultMap">
+        SELECT
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            COALESCE(AVG(r.rating), 0) as average_rating,
+            COUNT(DISTINCT r.review_id) as rating_count,
+            d.work_years, 
+            p.positions_name,
+            GROUP_CONCAT(DISTINCT e.expertise_id ORDER BY e.expertise_id SEPARATOR ',') as expertise_ids,
+            GROUP_CONCAT(DISTINCT e.expertise_name ORDER BY e.expertise_id SEPARATOR ',') as expertise_names,
+            GROUP_CONCAT(DISTINCT CONCAT(e.expertise_name, '(', ROUND(COALESCE(de.proficiency * 100, 50), 0), '%)') ORDER BY e.expertise_id SEPARATOR ', ') as expertise_details
+        FROM doctors d
+        LEFT JOIN departments dept ON d.department_id = dept.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id 
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        LEFT JOIN positions p ON d.positions_id = p.positions_id
+        LEFT JOIN reviews r ON d.doctor_id = r.doctor_id
+        <where>
+            <if test="name != null and name != ''">
+                AND d.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="departmentId != null">
+                AND d.department_id = #{departmentId}
+            </if>
+            <if test="positionsId != null">
+                AND d.positions_id = #{positionsId}
+            </if>
+            <if test="gender != null and gender != ''">
+                AND d.gender = #{gender}
+            </if>
+        </where>
+        GROUP BY 
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            d.work_years, 
+            p.positions_name
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'doctorId'">d.doctor_id</when>
+                    <when test="sortField == 'name'">d.name</when>
+                    <when test="sortField == 'averageRating'">average_rating</when>
+                    <when test="sortField == 'ratingCount'">rating_count</when>
+                    <when test="sortField == 'workYears'">d.work_years</when>
+                    <otherwise>d.doctor_id</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder.toLowerCase() == 'desc'">DESC</when>
+                    <otherwise>ASC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY d.doctor_id ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 根据ID查询医生详情 -->
+    <select id="selectDoctorVoById" resultMap="DoctorVOResultMap">
+        SELECT
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            COALESCE(AVG(r.rating), 0) as average_rating,
+            COUNT(DISTINCT r.review_id) as rating_count,
+            d.work_years, 
+            p.positions_name,
+            GROUP_CONCAT(DISTINCT e.expertise_id ORDER BY e.expertise_id SEPARATOR ',') as expertise_ids,
+            GROUP_CONCAT(DISTINCT e.expertise_name ORDER BY e.expertise_id SEPARATOR ',') as expertise_names,
+            GROUP_CONCAT(DISTINCT CONCAT(e.expertise_name, '(', ROUND(COALESCE(de.proficiency * 100, 50), 0), '%)') ORDER BY e.expertise_id SEPARATOR ', ') as expertise_details
+        FROM doctors d
+        LEFT JOIN departments dept ON d.department_id = dept.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id 
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        LEFT JOIN positions p ON d.positions_id = p.positions_id
+        LEFT JOIN reviews r ON d.doctor_id = r.doctor_id
+        WHERE d.doctor_id = #{doctorId}
+        GROUP BY 
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            d.work_years, 
+            p.positions_name
+    </select>
+
+    <!-- 根据科室ID查询医生列表（分页） -->
+    <select id="selectDoctorVoByDepartmentId" resultMap="DoctorVOResultMap">
+        SELECT
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            COALESCE(d.average_rating, 0) as average_rating,
+            COALESCE(d.rating_count, 0) as rating_count,
+            d.work_years, 
+            p.positions_name,
+            GROUP_CONCAT(DISTINCT e.expertise_id ORDER BY e.expertise_id SEPARATOR ',') as expertise_ids,
+            GROUP_CONCAT(DISTINCT e.expertise_name ORDER BY e.expertise_id SEPARATOR ',') as expertise_names,
+            GROUP_CONCAT(DISTINCT CONCAT(e.expertise_name, '(', ROUND(COALESCE(de.proficiency * 100, 50), 0), '%)') ORDER BY e.expertise_id SEPARATOR ', ') as expertise_details
+        FROM doctors d
+        LEFT JOIN departments dept ON d.department_id = dept.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id 
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        LEFT JOIN positions p ON d.positions_id = p.positions_id
+        WHERE d.department_id = #{departmentId}
+        GROUP BY 
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            d.average_rating,
+            d.rating_count,
+            d.work_years, 
+            p.positions_name
+    </select>
+    
+    <!-- 根据专长ID查询医生列表（分页） -->
+    <select id="selectDoctorVoByExpertiseId" resultMap="DoctorVOResultMap">
+        SELECT
+            d.doctor_id, 
+            d.name, 
+            d.gender, 
+            d.age, 
+            d.positions_id,
+            d.department_id, 
+            dept.department_name, 
+            d.avatar_url, 
+            COALESCE(d.average_rating, 0) as average_rating,
+            COALESCE(d.rating_count, 0) as rating_count,
+            d.work_years, 
+            p.positions_name,
+            e.expertise_id as expertise_ids,
+            e.expertise_name as expertise_names,
+            CONCAT(e.expertise_name, '(', ROUND(COALESCE(de.proficiency * 100, 50), 0), '%)') as expertise_details,
+            de.proficiency
+        FROM 
+            doctor_expertises de
+        JOIN 
+            doctors d ON de.doctor_id = d.doctor_id 
+        JOIN 
+            expertises e ON de.expertise_id = e.expertise_id AND de.expertise_id = #{expertiseId}
+        LEFT JOIN 
+            departments dept ON d.department_id = dept.department_id
+        LEFT JOIN 
+            positions p ON d.positions_id = p.positions_id
+        ORDER BY de.proficiency DESC
+    </select>
+
+    <!-- 根据关键词查询医生 -->
+    <select id="findDoctorsByKeywords" resultType="java.util.Map">
+        SELECT DISTINCT
+            d.doctor_id,
+            d.name,
+            d.department_id,
+            dept.department_name as departmentName,
+            GROUP_CONCAT(DISTINCT e.expertise_name) as expertiseList,
+            d.average_rating
+        FROM doctors d
+        LEFT JOIN departments dept ON d.department_id = dept.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        WHERE EXISTS (
+            SELECT 1 
+            FROM expertises e2 
+            JOIN doctor_expertises de2 ON e2.expertise_id = de2.expertise_id
+            WHERE de2.doctor_id = d.doctor_id
+            AND (
+                <foreach collection="keywords" item="keyword" separator=" OR ">
+                    e2.expertise_name LIKE CONCAT('%', #{keyword}, '%')
+                </foreach>
+            )
+        )
+        OR dept.department_name IN (
+            SELECT department_name 
+            FROM departments 
+            WHERE 
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+                department_name LIKE CONCAT('%', #{keyword}, '%')
+            </foreach>
+        )
+        GROUP BY 
+            d.doctor_id, 
+            d.name, 
+            d.department_id, 
+            dept.department_name,
+            d.average_rating
+        ORDER BY d.average_rating DESC
+        LIMIT 5
+    </select>
+
+</mapper>

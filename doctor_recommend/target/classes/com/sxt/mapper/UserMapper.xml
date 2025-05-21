@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.UserMapper">
+    <select id="selectByUsername" resultType="com.sxt.pojo.User">
+        SELECT * FROM t_user WHERE username = #{username}
+    </select>
+    <select id="selectUserVoByUsername" resultType="com.sxt.pojo.vo.UserVO"/>
+    <insert id="insertUser" parameterType="com.sxt.pojo.User">
+        INSERT INTO t_user (username, password, age, gender, phone, medical_record)
+        VALUES (#{username}, #{password},
+                #{age,jdbcType=INTEGER},
+                #{gender,jdbcType=VARCHAR},
+                #{phone,jdbcType=VARCHAR},
+                #{medicalRecord,jdbcType=LONGVARCHAR})
+    </insert>
+
+    <update id="updateUser" parameterType="com.sxt.pojo.User">
+        UPDATE t_user
+        SET 
+            username = #{username,jdbcType=VARCHAR},
+            phone = #{phone,jdbcType=VARCHAR},
+            age = #{age,jdbcType=INTEGER},
+            gender = #{gender,jdbcType=VARCHAR},
+            medical_record = #{medicalRecord,jdbcType=LONGVARCHAR},
+            password = #{password,jdbcType=VARCHAR},
+            update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

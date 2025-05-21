@@ -1,0 +1,256 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: #213547;
+  background-color: #f0f2f5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --el-input-height: 30px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Element Plus 组件全局样式覆盖 */
+.el-container {
+  height: 100vh;
+}
+
+.el-header {
+  height: 64px !important;
+  padding: 0 40px !important;
+  background-color: #fff;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.el-aside {
+  width: 240px !important;
+  background-color: #fff;
+  border-right: 1px solid #e4e7ed;
+}
+
+.el-main {
+  padding: 0 !important;
+  background-color: #f0f2f5;
+}
+
+.el-menu {
+  border-right: none !important;
+}
+
+.el-menu-item {
+  height: 56px !important;
+  line-height: 56px !important;
+  font-size: 16px !important;
+}
+
+.el-submenu__title {
+  height: 56px !important;
+  line-height: 56px !important;
+  font-size: 16px !important;
+}
+
+.el-card {
+  border-radius: 8px !important;
+  border: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.el-button {
+  padding: 10px 20px !important;
+  font-size: 14px !important;
+  border-radius: 4px !important;
+}
+
+.el-button--large {
+  padding: 12px 24px !important;
+  font-size: 16px !important;
+}
+
+.el-input {
+  font-size: 14px !important;
+}
+
+.el-input__wrapper {
+  padding: 6px 12px !important;
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+.el-input__inner {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+.el-dialog {
+  margin: 0 auto !important;
+  max-width: 90% !important;
+  max-height: 90vh !important;
+}
+
+.el-dialog__header {
+  padding: 24px !important;
+  margin: 0 !important;
+  font-size: 20px !important;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.el-dialog__body {
+  padding: 24px !important;
+  max-height: calc(90vh - 150px) !important;
+  overflow-y: auto;
+}
+
+.el-dialog__footer {
+  padding: 24px !important;
+  border-top: 1px solid #e4e7ed;
+}
+
+.el-table {
+  font-size: 14px !important;
+}
+
+.el-table th {
+  font-size: 14px !important;
+  background-color: #f5f7fa !important;
+  font-weight: 500 !important;
+}
+
+.el-carousel__container {
+  height: 400px !important;
+}
+
+.el-carousel__item {
+  padding: 20px !important;
+}
+
+.el-avatar {
+  background-color: #e6f0ff !important;
+  color: #409eff !important;
+}
+
+/* 响应式布局 */
+@media (max-width: 1200px) {
+  .el-header {
+    padding: 0 20px !important;
+  }
+
+  .el-aside {
+    width: 200px !important;
+  }
+
+  .el-button {
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+  }
+
+  .el-button--large {
+    padding: 14px 28px !important;
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .el-header {
+    padding: 0 16px !important;
+  }
+
+  .el-aside {
+    width: 64px !important;
+  }
+
+  .el-button {
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+  }
+
+  .el-button--large {
+    padding: 12px 24px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* 选择框统一高度 */
+.el-select__wrapper {
+  height: var(--el-input-height) !important;
+}
+
+.el-select .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+/* 数字输入框统一高度 */
+.el-input-number .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+/* 日期选择器统一高度 */
+.el-date-editor .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+/* 时间选择器统一高度 */
+.el-time-picker .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+/* 级联选择器统一高度 */
+.el-cascader .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+/* 自动完成输入框统一高度 */
+.el-autocomplete .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}
+
+/* 确保输入框内的图标垂直居中 */
+.el-input__prefix,
+.el-input__suffix {
+  display: inline-flex;
+  align-items: center;
+  height: var(--el-input-height) !important;
+}
+
+/* 表单项中的输入框高度 */
+.el-form-item__content {
+  line-height: var(--el-input-height) !important;
+}
+
+/* 搜索框特殊样式 */
+.search-area .el-input__wrapper,
+.search-area .el-select .el-input__wrapper {
+  height: var(--el-input-height) !important;
+  line-height: var(--el-input-height) !important;
+}

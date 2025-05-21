@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.ExpertiseMapper">
+
+    <resultMap id="BaseResultMap" type="com.sxt.pojo.Expertise">
+        <id column="expertise_id" property="expertiseId"/>
+        <result column="expertise_name" property="expertiseName"/>
+        <result column="department_id" property="departmentId"/>
+        <result column="department_name" property="departmentName"/>
+        <result column="proficiency" property="proficiency"/>
+        <result column="avg_proficiency" property="avgProficiency"/>
+        <result column="relevance_score" property="relevanceScore"/>
+        <result column="symptom_count" property="symptomCount"/>
+        <result column="doctor_count" property="doctorCount"/>
+    </resultMap>
+
+    <!-- 通用的SELECT查询 -->
+    <sql id="Base_Column_List">
+        e.expertise_id, e.expertise_name, e.department_id, d.department_name,
+        (SELECT COUNT(DISTINCT de.doctor_id) FROM doctor_expertises de WHERE de.expertise_id = e.expertise_id) as doctor_count,
+        (SELECT AVG(de.proficiency) FROM doctor_expertises de WHERE de.expertise_id = e.expertise_id) as avg_proficiency
+    </sql>
+
+    <select id="getExpertiseList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        <where>
+            <if test="expertiseName != null and expertiseName != ''">
+                AND e.expertise_name LIKE CONCAT('%', #{expertiseName}, '%')
+            </if>
+            <if test="departmentId != null">
+                AND e.department_id = #{departmentId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getExpertiseById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        WHERE e.expertise_id = #{expertiseId}
+    </select>
+
+    <!-- MyBatis-Plus selectById方法 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        WHERE e.expertise_id = #{id}
+    </select>
+
+    <!-- MyBatis-Plus selectOne方法 -->
+    <select id="selectOne" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        <if test="ew != null">
+            <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+                ${ew.customSqlSegment}
+            </if>
+        </if>
+    </select>
+
+    <!-- MyBatis-Plus selectList方法 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        <if test="ew != null">
+            <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+                ${ew.customSqlSegment}
+            </if>
+        </if>
+    </select>
+
+    <!-- MyBatis-Plus selectPage方法 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        <if test="ew != null">
+            <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+                ${ew.customSqlSegment}
+            </if>
+        </if>
+    </select>
+
+    <!-- MyBatis-Plus selectCount方法 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM expertises e
+        <if test="ew != null">
+            <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+                ${ew.customSqlSegment}
+            </if>
+        </if>
+    </select>
+
+    <select id="getExpertisesByDoctorId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />, de.proficiency
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        INNER JOIN doctor_expertises de ON e.expertise_id = de.expertise_id
+        WHERE de.doctor_id = #{doctorId}
+    </select>
+
+    <select id="getExpertisesByDepartmentId" resultMap="BaseResultMap">
+        SELECT 
+            <include refid="Base_Column_List" />,
+            (SELECT COUNT(DISTINCT s.symptom_id) FROM symptom_expertises s WHERE s.expertise_id = e.expertise_id) as symptom_count
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        WHERE e.department_id = #{departmentId}
+    </select>
+
+    <insert id="saveDoctorsByExpertise">
+        INSERT INTO doctor_expertises (doctor_id, expertise_id, proficiency)
+        VALUES
+        <foreach collection="doctors" item="doctor" separator=",">
+            (#{doctor.doctorId}, #{expertiseId}, #{doctor.proficiency})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        proficiency = VALUES(proficiency)
+    </insert>
+
+    <insert id="saveDoctorExpertises">
+        INSERT INTO doctor_expertises (doctor_id, expertise_id, proficiency)
+        VALUES
+        <foreach collection="expertises" item="expertise" separator=",">
+            (#{doctorId}, #{expertise.expertiseId}, #{expertise.proficiency})
+        </foreach>
+    </insert>
+
+    <update id="updateDoctorExpertiseProficiency">
+        UPDATE doctor_expertises
+        SET proficiency = #{proficiency}
+        WHERE doctor_id = #{doctorId}
+        AND expertise_id = #{expertiseId}
+    </update>
+
+    <delete id="deleteDoctorExpertises">
+        DELETE FROM doctor_expertises
+        <where>
+            <if test="doctorId != null">
+                doctor_id = #{doctorId}
+            </if>
+            <if test="expertiseId != null">
+                AND expertise_id = #{expertiseId}
+            </if>
+        </where>
+    </delete>
+
+    <select id="checkExpertiseNameExists" resultType="int">
+        SELECT COUNT(1)
+        FROM expertises
+        WHERE expertise_name = #{expertiseName}
+        <if test="expertiseId != null">
+            AND expertise_id != #{expertiseId}
+        </if>
+    </select>
+
+    <insert id="insertExpertise" useGeneratedKeys="true" keyProperty="expertiseId">
+        INSERT INTO expertises (
+            expertise_name,
+            department_id
+        ) VALUES (
+            #{expertiseName},
+            #{departmentId}
+        )
+    </insert>
+
+    <update id="updateExpertise">
+        UPDATE expertises
+        <set>
+            <if test="expertiseName != null">
+                expertise_name = #{expertiseName},
+            </if>
+            department_id = #{departmentId}
+        </set>
+        WHERE expertise_id = #{expertiseId}
+    </update>
+
+    <delete id="deleteExpertise">
+        DELETE FROM expertises
+        WHERE expertise_id = #{expertiseId}
+    </delete>
+
+    <!-- 获取所有医生的专长数据 -->
+    <select id="getAllDoctorExpertises" resultType="com.sxt.pojo.DoctorExpertise">
+        SELECT doctor_id, expertise_id, proficiency
+        FROM doctor_expertises
+    </select>
+
+    <!-- 根据专长名称列表查找专长ID列表 -->
+    <select id="findExpertiseIdsByNames" resultType="java.lang.Integer">
+        SELECT expertise_id
+        FROM expertises
+        WHERE expertise_name IN
+        <foreach collection="expertiseNames" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+        OR
+        <foreach collection="expertiseNames" item="name" open="(" separator=" OR " close=")">
+            expertise_name LIKE CONCAT('%', #{name}, '%')
+        </foreach>
+    </select>
+
+    <!-- 获取专长列表（支持症状搜索和排序） -->
+    <select id="getExpertiseListWithFiltersAndSort" resultMap="BaseResultMap">
+        SELECT DISTINCT
+            <include refid="Base_Column_List" />,
+            (SELECT COUNT(DISTINCT s.symptom_id) FROM symptom_expertises s WHERE s.expertise_id = e.expertise_id) as symptom_count
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        LEFT JOIN symptom_expertises se ON e.expertise_id = se.expertise_id
+        LEFT JOIN symptoms s ON se.symptom_id = s.symptom_id
+        <where>
+        <if test="expertiseName != null and expertiseName != ''">
+            AND e.expertise_name LIKE CONCAT('%', #{expertiseName}, '%')
+        </if>
+        <if test="departmentId != null">
+            AND e.department_id = #{departmentId}
+        </if>
+        <if test="symptomKeyword != null and symptomKeyword != ''">
+                AND s.symptom_name LIKE CONCAT('%', #{symptomKeyword}, '%')
+        </if>
+        </where>
+        GROUP BY e.expertise_id, e.expertise_name, e.department_id, d.department_name
+        <choose>
+            <when test="sortBy == 'DOCTOR_COUNT'">
+                ORDER BY doctor_count ${isAsc ? 'ASC' : 'DESC'}
+            </when>
+            <when test="sortBy == 'AVG_PROFICIENCY'">
+                ORDER BY avg_proficiency ${isAsc ? 'ASC' : 'DESC'}
+            </when>
+            <when test="sortBy == 'SYMPTOM_COUNT'">
+                ORDER BY symptom_count ${isAsc ? 'ASC' : 'DESC'}
+            </when>
+            <when test="sortBy == 'NAME'">
+                ORDER BY e.expertise_name ${isAsc ? 'ASC' : 'DESC'}
+            </when>
+            <when test="sortBy == 'DEPARTMENT'">
+                ORDER BY d.department_name ${isAsc ? 'ASC' : 'DESC'}
+            </when>
+            <otherwise>
+                ORDER BY e.expertise_id ${isAsc ? 'ASC' : 'DESC'}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 查询专长列表 -->
+    <select id="selectExpertiseList" resultType="com.sxt.pojo.Expertise">
+        SELECT 
+            e.expertise_id,
+            e.expertise_name,
+            e.department_id,
+            d.department_name
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        <where>
+            <if test="expertiseName != null and expertiseName != ''">
+                AND e.expertise_name LIKE CONCAT('%', #{expertiseName}, '%')
+            </if>
+            <if test="departmentId != null">
+                AND e.department_id = #{departmentId}
+            </if>
+        </where>
+        ORDER BY e.expertise_id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 获取专长总数 -->
+    <select id="getExpertiseCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM expertises e
+        LEFT JOIN departments d ON e.department_id = d.department_id
+        <where>
+            <if test="expertiseName != null and expertiseName != ''">
+                AND e.expertise_name LIKE CONCAT('%', #{expertiseName}, '%')
+            </if>
+            <if test="departmentId != null">
+                AND e.department_id = #{departmentId}
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteSymptomExpertises">
+        DELETE FROM symptom_expertises
+        WHERE expertise_id = #{expertiseId}
+    </delete>
+
+</mapper>

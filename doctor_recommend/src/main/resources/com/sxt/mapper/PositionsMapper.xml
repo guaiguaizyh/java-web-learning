@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.PositionsMapper">
+    
+    <!-- 获取职称分布统计 -->
+    <select id="getPositionsDistribution" resultType="com.sxt.pojo.dto.PositionDistributionDTO">
+        SELECT 
+            p.positions_id as positionsId,
+            p.positions_name as positionsName,
+            COUNT(d.doctor_id) as doctorCount
+        FROM 
+            positions p
+        LEFT JOIN 
+            doctors d ON p.positions_id = d.positions_id
+        GROUP BY 
+            p.positions_id, p.positions_name
+        ORDER BY 
+            p.positions_id
+    </select>
+    
+</mapper> 
