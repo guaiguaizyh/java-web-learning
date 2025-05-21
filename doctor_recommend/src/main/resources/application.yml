@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: doctor_recommend
+  # mysql连接设备
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/doctor?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      idle-timeout: 30000
+      pool-name: HikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      auto-commit: true
+
+# JWT配置
+jwt:
+  secret: yourSecretKey  # JWT密钥
+  expirationMs: 86400000  # Token有效期24小时
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath*:/com/sxt/mapper/*Mapper.xml
+  type-aliases-package: com.sxt.domain.dto
+
+# 日志配置
+logging:
+  level:
+    org.springframework.jdbc.support.JdbcTransactionManager: debug
+
+# 其他配置
+servlet:
+  multipart:
+    max-file-size: 10MB
+    max-request-size: 100MB
+
+aliyun:
+  oss:
+    endpoint: https://oss-cn-beijing.aliyuncs.com
+    bucket-name: java-aizyh
+    region: cn-beijing
+
+# 智谱AI配置
+zhipu:
+  ai:
+    api-key: ${ZHIPU_API_KEY:4053c5f293c04bc0bc2215abd1bbef87.9UJnAhmjx0Hr6TSj}
+    model: glm-4
+    temperature: 0.3
+    max-tokens: 20000

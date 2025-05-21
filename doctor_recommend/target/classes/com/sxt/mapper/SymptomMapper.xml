@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.SymptomMapper">
+    
+    <select id="selectSymptomPage" resultType="com.sxt.pojo.SymptomDTO">
+        SELECT s.*, d.department_name as department_name
+        FROM symptoms s
+        LEFT JOIN departments d ON s.department_id = d.department_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (s.keyword LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="departmentId != null">
+                AND s.department_id = #{departmentId}
+            </if>
+        </where>
+        ORDER BY s.symptom_id ASC
+    </select>
+    
+    <!-- 使用resultMap定义症状与关联度的映射 -->
+    <resultMap id="SymptomWithRelevanceMap" type="com.sxt.pojo.SymptomDTO">
+        <id property="symptomId" column="symptom_id"/>
+        <result property="keyword" column="keyword"/>
+        <result property="departmentId" column="department_id"/>
+        <result property="departmentName" column="department_name"/>
+        <result property="relevanceScore" column="relevance_score"/>
+    </resultMap>
+    
+    <select id="selectSymptomsByExpertiseId" resultMap="SymptomWithRelevanceMap">
+        SELECT 
+            s.symptom_id,
+            s.keyword,
+            s.department_id,
+            es.relevance_score
+        FROM symptoms s
+        INNER JOIN symptom_expertises es ON s.symptom_id = es.symptom_id
+        WHERE es.expertise_id = #{expertiseId}
+        ORDER BY es.relevance_score DESC
+    </select>
+    
+    <delete id="deleteExpertiseSymptoms">
+        DELETE FROM symptom_expertises
+        WHERE expertise_id = #{expertiseId}
+    </delete>
+    
+    <insert id="insertExpertiseSymptoms">
+        INSERT INTO symptom_expertises (expertise_id, symptom_id, relevance_score)
+        VALUES
+        <foreach collection="symptomIds" item="symptomId" index="index" separator=",">
+            (#{expertiseId}, #{symptomId}, #{relevanceScores[${index}]})
+        </foreach>
+    </insert>
+    
+    <!-- 根据症状ID获取相关专长信息 -->
+    <select id="getExpertisesBySymptomId" resultType="java.util.Map">
+        SELECT 
+            e.expertise_id,
+            e.expertise_name,
+            se.relevance_score
+        FROM 
+            symptom_expertises se
+        JOIN 
+            expertises e ON se.expertise_id = e.expertise_id
+        WHERE 
+            se.symptom_id = #{symptomId}
+        ORDER BY 
+            se.relevance_score DESC
+    </select>
+    
+    <!-- 根据关键词列表查找相似的症状关键词（简化版，仅从symptoms表查询） -->
+    <select id="findSimilarKeywords" resultType="java.lang.String">
+        SELECT DISTINCT keyword 
+        FROM symptoms
+        WHERE 
+        <foreach collection="keywords" item="keyword" separator=" OR ">
+            keyword LIKE CONCAT('%', #{keyword}, '%')
+        </foreach>
+        LIMIT 20
+    </select>
+    
+    <!-- 根据关键词列表进行高级模糊匹配查找症状关键词 -->
+    <select id="findKeywordsWithFuzzyMatch" resultType="java.lang.String">
+        SELECT DISTINCT s.keyword 
+        FROM symptoms s
+        WHERE 
+        <foreach collection="keywords" item="keyword" separator=" OR " open="(" close=")">
+            <!-- 完全匹配 -->
+            s.keyword = #{keyword}
+            <!-- 前缀匹配（关键词在开头） -->
+            OR s.keyword LIKE CONCAT(#{keyword}, '%')
+            <!-- 后缀匹配（关键词在末尾） -->
+            OR s.keyword LIKE CONCAT('%', #{keyword})
+            <!-- 包含匹配（关键词在中间） -->
+            OR s.keyword LIKE CONCAT('%', #{keyword}, '%')
+            <!-- 分词匹配（将关键词按空格分割后匹配） -->
+            OR (
+                <foreach collection="keywords" item="wordPart" separator=" OR ">
+                    <!-- 将每个词分开匹配 -->
+                    (LENGTH(#{wordPart}) > 1 AND s.keyword LIKE CONCAT('%', #{wordPart}, '%'))
+                </foreach>
+            )
+        </foreach>
+        ORDER BY 
+        CASE 
+            <!-- 优先返回完全匹配的结果 -->
+            WHEN s.keyword IN 
+            <foreach collection="keywords" item="keyword" separator="," open="(" close=")">
+                #{keyword}
+            </foreach>
+            THEN 0
+            <!-- 其次返回前缀匹配的结果 -->
+            WHEN 
+            <foreach collection="keywords" item="keyword" separator=" OR " open="(" close=")">
+                s.keyword LIKE CONCAT(#{keyword}, '%')
+            </foreach>
+            THEN 1
+            <!-- 最后是其他模糊匹配 -->
+            ELSE 2
+        END,
+        LENGTH(s.keyword) ASC
+        LIMIT 30
+    </select>
+    
+    <!-- 获取所有症状信息 -->
+    <select id="getAllSymptoms" resultType="java.util.Map">
+        SELECT 
+            s.symptom_id,
+            s.keyword,
+            s.department_id,
+            d.department_name
+        FROM 
+            symptoms s
+        LEFT JOIN 
+            departments d ON s.department_id = d.department_id
+        ORDER BY 
+            s.symptom_id ASC
+    </select>
+    
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.sxt.pojo.SymptomDTO">
+        <id property="symptomId" column="symptom_id"/>
+        <result property="keyword" column="keyword"/>
+        <result property="departmentId" column="department_id"/>
+        <result property="departmentName" column="department_name"/>
+    </resultMap>
+
+    <!-- 根据ID查询症状 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT 
+            s.*,
+            d.department_name
+        FROM symptoms s
+        LEFT JOIN departments d ON s.department_id = d.department_id
+        WHERE s.symptom_id = #{id}
+    </select>
+
+    <!-- 更新症状信息 -->
+    <update id="updateById">
+        UPDATE symptoms
+        <set>
+            <if test="et.keyword != null">
+                keyword = #{et.keyword},
+            </if>
+            <if test="et.departmentId != null">
+                department_id = #{et.departmentId}
+            </if>
+        </set>
+        WHERE symptom_id = #{et.symptomId}
+    </update>
+    
+    <!-- 删除症状 -->
+    <delete id="deleteById">
+        DELETE FROM symptoms WHERE symptom_id = #{symptomId}
+    </delete>
+
+</mapper> 

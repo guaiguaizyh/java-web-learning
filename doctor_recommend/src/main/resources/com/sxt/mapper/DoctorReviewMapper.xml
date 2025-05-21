@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.DoctorReviewMapper">
+
+    <!-- 用于查询的 ResultMap，包含用户名和医生信息 -->
+    <resultMap id="ReviewWithUserResultMap" type="com.sxt.pojo.DoctorReview">
+        <id column="review_id" property="reviewId"/>
+        <result column="doctor_id" property="doctorId"/>
+        <result column="user_id" property="userId"/>
+        <result column="rating" property="rating"/>
+        <result column="comment" property="comment"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="is_anonymous" property="isAnonymous"/>
+        <result column="username" property="username"/>
+        <result column="doctor_name" property="doctorName"/>
+        <result column="department_name" property="departmentName"/>
+    </resultMap>
+
+    <!-- 分页查询指定医生的评论列表 -->
+    <select id="selectReviewPageByDoctorId" resultMap="ReviewWithUserResultMap">
+        SELECT
+            r.review_id,
+            r.doctor_id,
+            r.user_id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            r.is_anonymous,
+            CASE 
+                WHEN IFNULL(r.is_anonymous, 0) = 1 THEN '匿名用户'
+                ELSE u.username
+            END as username,
+            d.name as doctor_name,
+            dept.department_name
+        FROM
+            reviews r
+        LEFT JOIN
+            t_user u ON r.user_id = u.user_id
+        LEFT JOIN
+            doctors d ON r.doctor_id = d.doctor_id
+        LEFT JOIN
+            departments dept ON d.department_id = dept.department_id
+        WHERE
+            r.doctor_id = #{doctorId}
+        ORDER BY
+            r.created_at DESC
+    </select>
+
+    <!-- 获取医生的平均评分 -->
+    <select id="getAverageRating" resultType="java.lang.Float">
+        SELECT AVG(rating)
+        FROM reviews
+        WHERE doctor_id = #{doctorId}
+    </select>
+
+    <!-- 获取医生的评价数量 -->
+    <select id="getRatingCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM reviews
+        WHERE doctor_id = #{doctorId}
+    </select>
+
+    <!-- 获取医生满意度统计 -->
+    <select id="getDoctorSatisfactionStats" resultType="java.util.Map">
+        SELECT 
+            d.doctor_id,
+            d.name as doctor_name,
+            d.department_id,
+            COUNT(r.review_id) as review_count,
+            AVG(r.rating) as avg_rating,
+            COUNT(CASE WHEN r.rating >= 4 THEN 1 END) as high_rating_count
+        FROM 
+            doctors d
+        LEFT JOIN 
+            reviews r ON d.doctor_id = r.doctor_id
+        GROUP BY 
+            d.doctor_id, d.name, d.department_id
+    </select>
+
+    <!-- 获取科室满意度统计 -->
+    <select id="getDepartmentStats" resultType="java.util.Map">
+        SELECT 
+            d.department_id,
+            d.department_name as department_name,
+            COUNT(r.review_id) as review_count,
+            AVG(r.rating) as avg_rating,
+            COUNT(CASE WHEN r.rating >= 4 THEN 1 END) as high_rating_count
+        FROM 
+            departments d
+        LEFT JOIN 
+            doctors doc ON d.department_id = doc.department_id
+        LEFT JOIN 
+            reviews r ON doc.doctor_id = r.doctor_id
+        GROUP BY 
+            d.department_id, d.department_name
+    </select>
+
+    <!-- 获取评分趋势 -->
+    <select id="getRatingTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(r.created_at, '%Y-%m') as month,
+            COUNT(r.review_id) as review_count,
+            AVG(r.rating) as avg_rating
+        FROM 
+            reviews r
+        WHERE 
+            r.created_at >= DATE_SUB(CURDATE(), INTERVAL #{months} MONTH)
+        GROUP BY 
+            DATE_FORMAT(r.created_at, '%Y-%m')
+        ORDER BY 
+            month ASC
+    </select>
+
+    <!-- 获取评分分布 -->
+    <select id="getRatingDistribution" resultType="java.util.Map">
+        SELECT 
+            rating,
+            COUNT(*) as count
+        FROM 
+            reviews
+        GROUP BY 
+            rating
+        ORDER BY 
+            rating ASC
+    </select>
+
+    <!-- 获取评分最高的医生 -->
+    <select id="getTopRatedDoctors" resultType="java.util.Map">
+        SELECT 
+            d.doctor_id,
+            d.name as doctor_name,
+            d.department_id,
+            dep.department_name as department_name,
+            COUNT(r.review_id) as review_count,
+            AVG(r.rating) as avg_rating
+        FROM 
+            doctors d
+        LEFT JOIN 
+            departments dep ON d.department_id = dep.department_id
+        LEFT JOIN 
+            reviews r ON d.doctor_id = r.doctor_id
+        GROUP BY 
+            d.doctor_id, d.name, d.department_id, dep.department_name
+        HAVING 
+            review_count >= 5
+        ORDER BY 
+            avg_rating DESC, review_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取用户的所有评价 -->
+    <select id="getUserRatings" resultMap="ReviewWithUserResultMap">
+        SELECT
+            r.review_id,
+            r.doctor_id,
+            r.user_id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            r.is_anonymous,
+            CASE 
+                WHEN IFNULL(r.is_anonymous, 0) = 1 THEN '匿名用户'
+                ELSE u.username
+            END as username
+        FROM
+            reviews r
+        LEFT JOIN
+            t_user u ON r.user_id = u.user_id
+        WHERE
+            r.user_id = #{userId}
+        ORDER BY
+            r.created_at DESC
+    </select>
+
+    <!-- 获取医生的所有评价 -->
+    <select id="getDoctorRatings" resultMap="ReviewWithUserResultMap">
+        SELECT
+            r.review_id,
+            r.doctor_id,
+            r.user_id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            r.is_anonymous,
+            CASE 
+                WHEN IFNULL(r.is_anonymous, 0) = 1 THEN '匿名用户'
+                ELSE u.username
+            END as username
+        FROM
+            reviews r
+        LEFT JOIN
+            t_user u ON r.user_id = u.user_id
+        WHERE
+            r.doctor_id = #{doctorId}
+        ORDER BY
+            r.created_at DESC
+    </select>
+
+    <!-- 添加条件查询SQL实现 -->
+    <select id="selectReviewsByCondition" resultMap="ReviewWithUserResultMap">
+        SELECT
+            r.review_id,
+            r.doctor_id,
+            r.user_id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            r.is_anonymous,
+            u.username
+        FROM
+            reviews r
+        LEFT JOIN
+            t_user u ON r.user_id = u.user_id
+        <where>
+            <if test="doctorId != null">
+                AND r.doctor_id = #{doctorId}
+            </if>
+            <if test="userId != null">
+                AND r.user_id = #{userId}
+            </if>
+            <if test="minRating != null">
+                AND r.rating >= #{minRating}
+            </if>
+            <if test="maxRating != null">
+                AND r.rating &lt;= #{maxRating}
+            </if>
+            <if test="keywords != null and keywords != ''">
+                AND r.comment LIKE CONCAT('%', #{keywords}, '%')
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND r.created_at >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND r.created_at &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY
+            r.created_at DESC
+    </select>
+
+    <!-- 评价管理模块 - 高级查询功能 -->
+    <select id="selectReviewsForManagement" resultMap="ReviewWithUserResultMap">
+        SELECT
+            r.review_id,
+            r.doctor_id,
+            r.user_id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            r.is_anonymous,
+            CASE 
+                WHEN IFNULL(r.is_anonymous, 0) = 1 THEN '匿名用户'
+                ELSE u.username
+            END as username,
+            d.name as doctor_name,
+            dept.department_name
+        FROM
+            reviews r
+        LEFT JOIN
+            t_user u ON r.user_id = u.user_id
+        LEFT JOIN
+            doctors d ON r.doctor_id = d.doctor_id
+        LEFT JOIN
+            departments dept ON d.department_id = dept.department_id
+        <where>
+            <if test="userId != null">
+                AND r.user_id = #{userId}
+            </if>
+            <if test="doctorId != null">
+                AND r.doctor_id = #{doctorId}
+            </if>
+            <if test="doctorName != null and doctorName != ''">
+                AND d.name LIKE CONCAT('%', #{doctorName}, '%')
+            </if>
+            <if test="userName != null and userName != ''">
+                AND u.username LIKE CONCAT('%', #{userName}, '%')
+            </if>
+            <if test="departmentId != null">
+                AND d.department_id = #{departmentId}
+            </if>
+            <if test="minRating != null">
+                AND r.rating >= #{minRating}
+            </if>
+            <if test="maxRating != null">
+                AND r.rating &lt;= #{maxRating}
+            </if>
+            <if test="content != null and content != ''">
+                AND r.comment LIKE CONCAT('%', #{content}, '%')
+            </if>
+        </where>
+        ORDER BY
+            r.created_at DESC
+    </select>
+
+</mapper> 

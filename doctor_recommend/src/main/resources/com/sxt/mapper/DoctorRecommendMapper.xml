@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.DoctorRecommendMapper">
+
+    <!-- 获取症状相关的专长及相关度 -->
+    <select id="getExpertiseRelevanceBySymptoms" resultType="com.sxt.pojo.Expertise">
+        SELECT 
+            e.expertise_id,
+            e.expertise_name,
+            AVG(se.relevance_score) as relevance_score
+        FROM expertises e
+        JOIN symptom_expertises se ON e.expertise_id = se.expertise_id
+        WHERE se.symptom_id IN
+        <foreach collection="symptomIds" item="symptomId" open="(" separator="," close=")">
+            #{symptomId}
+        </foreach>
+        GROUP BY e.expertise_id, e.expertise_name
+        ORDER BY relevance_score DESC
+    </select>
+
+    <!-- 根据关键词匹配症状，并直接关联专长信息 -->
+    <select id="matchSymptomsByKeywords" resultType="map">
+        SELECT DISTINCT 
+            s.symptom_id,
+            s.keyword as symptom_name,
+            se.expertise_id,
+            e.expertise_name,
+            se.relevance_score,
+            de.proficiency,
+            e.department_id,
+            -- 计算关键词匹配权重
+            (CASE 
+                WHEN s.keyword IN 
+                <foreach collection="keywords" item="keyword" separator="," open="(" close=")">
+                    #{keyword}
+                </foreach>
+                THEN 1.0
+                WHEN 
+                <foreach collection="keywords" item="keyword" separator=" OR ">
+                    s.keyword LIKE CONCAT(#{keyword}, '%')
+                </foreach>
+                THEN 0.70
+                WHEN 
+                <foreach collection="keywords" item="keyword" separator=" OR ">
+                    s.keyword LIKE CONCAT('%', #{keyword}, '%')
+                </foreach>
+                THEN 0.50
+            END) as keyword_match_score
+        FROM symptoms s
+        LEFT JOIN symptom_expertises se ON s.symptom_id = se.symptom_id
+        LEFT JOIN expertises e ON se.expertise_id = e.expertise_id
+        LEFT JOIN doctor_expertises de ON e.expertise_id = de.expertise_id
+        WHERE 
+        <foreach collection="keywords" item="keyword" separator=" OR ">
+            s.keyword LIKE CONCAT('%', #{keyword}, '%')
+        </foreach>
+        ORDER BY 
+            -- 优先按关键词匹配度排序
+            keyword_match_score DESC,
+            -- 其次按相关度排序
+            se.relevance_score DESC
+    </select>
+
+    <!-- 根据专长获取医生信息 -->
+    <select id="getDoctorsByExpertises" resultType="com.sxt.pojo.RecommendedDoctorDTO">
+        SELECT 
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.age,
+            d.average_rating,
+            d.rating_count,
+            p.positions_name,
+            dept.department_name,
+            GROUP_CONCAT(e.expertise_name) as expertises,
+            GROUP_CONCAT(
+                CONCAT( e.expertise_name, ':', ROUND(COALESCE(de.proficiency, 0.1)*100, 2),'%')
+                SEPARATOR ';'
+            ) as expertiseList
+        FROM doctors d
+        LEFT JOIN positions p ON d.positions_id = p.positions_id
+        LEFT JOIN departments dept ON d.department_id = dept.department_id
+        LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id
+        LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        WHERE de.expertise_id IN
+        <foreach collection="expertiseIds" item="expertiseId" open="(" separator="," close=")">
+            #{expertiseId}
+        </foreach>
+        GROUP BY d.doctor_id, d.name, d.gender, d.age,
+                 d.average_rating, d.rating_count, p.positions_name, dept.department_name
+        ORDER BY d.average_rating DESC, d.rating_count DESC
+    </select>
+
+    <!-- 获取评分最高的医生列表 -->
+    <select id="getTopRatedDoctors" resultType="com.sxt.pojo.RecommendedDoctorDTO">
+        SELECT
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.age,
+            d.average_rating,
+            d.rating_count,
+            p.positions_name,
+            dept.department_name,
+            GROUP_CONCAT(e.expertise_name) as expertises,
+            GROUP_CONCAT(
+                    CONCAT(e.expertise_id, ':', e.expertise_name, ':', ROUND(COALESCE(de.proficiency, 0.5), 2))
+                        SEPARATOR ';'
+            ) as expertiseList
+        FROM doctors d
+                 LEFT JOIN positions p ON d.positions_id = p.positions_id
+                 LEFT JOIN departments dept ON d.department_id = dept.department_id
+                 LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id
+                 LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        GROUP BY d.doctor_id, d.name, d.gender, d.age,
+                 d.average_rating, d.rating_count, p.positions_name, dept.department_name
+        ORDER BY d.average_rating DESC, d.rating_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取所有医生列表 -->
+    <select id="getAllDoctors" resultType="com.sxt.pojo.RecommendedDoctorDTO">
+        SELECT
+            d.doctor_id,
+            d.name,
+            d.gender,
+            d.age,
+            d.average_rating,
+            d.rating_count,
+            p.positions_name,
+            dept.department_name,
+            GROUP_CONCAT(e.expertise_name) as expertises,
+            GROUP_CONCAT(
+                    CONCAT(e.expertise_id, ':', e.expertise_name, ':', ROUND(COALESCE(de.proficiency, 0.5), 2))
+                        SEPARATOR ';'
+            ) as expertiseList
+        FROM doctors d
+                 LEFT JOIN positions p ON d.positions_id = p.positions_id
+                 LEFT JOIN departments dept ON d.department_id = dept.department_id
+                 LEFT JOIN doctor_expertises de ON d.doctor_id = de.doctor_id
+                 LEFT JOIN expertises e ON de.expertise_id = e.expertise_id
+        GROUP BY d.doctor_id, d.name, d.gender, d.age,
+                 d.average_rating, d.rating_count, p.positions_name, dept.department_name
+        ORDER BY d.average_rating DESC, d.rating_count DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

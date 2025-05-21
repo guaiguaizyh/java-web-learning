@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sxt.mapper.SatisfactionAnalysisMapper">
+
+    <!-- 获取医生满意度统计 -->
+    <select id="getDoctorSatisfactionStats" resultType="java.util.Map">
+        SELECT 
+            d.doctor_id,
+            d.name as doctor_name,
+            d.department_id,
+            COUNT(r.review_id) as totalReviews,
+            ROUND(AVG(r.rating), 1) as averageRating,
+            SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM doctors d
+        LEFT JOIN reviews r ON d.doctor_id = r.doctor_id
+        WHERE d.doctor_id = #{doctorId}
+        GROUP BY d.doctor_id, d.name, d.department_id
+    </select>
+
+    <!-- 获取医生满意度趋势 -->
+    <select id="getDoctorSatisfactionTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(r.created_at, #{dateFormat}) as date,
+            COUNT(r.review_id) as reviewCount,
+            ROUND(AVG(r.rating), 1) as averageRating,
+            SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM reviews r
+        WHERE r.doctor_id = #{doctorId}
+        AND r.created_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE_FORMAT(r.created_at, #{dateFormat})
+        ORDER BY date
+    </select>
+
+    <!-- 获取科室满意度统计 -->
+    <select id="getDepartmentStats" resultType="java.util.Map">
+        SELECT 
+            d.department_id,
+            d.department_name,
+            COUNT(r.review_id) as totalReviews,
+            ROUND(AVG(r.rating), 1) as averageRating,
+            SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM departments d
+        LEFT JOIN doctors doc ON d.department_id = doc.department_id
+        LEFT JOIN reviews r ON doc.doctor_id = r.doctor_id
+        WHERE d.department_id = #{departmentId}
+        GROUP BY d.department_id, d.department_name
+    </select>
+
+    <!-- 获取科室评分分布 -->
+    <select id="getDepartmentRatingDistribution" resultType="java.util.Map">
+        SELECT 
+            r.rating,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as percentage
+        FROM reviews r
+        JOIN doctors d ON r.doctor_id = d.doctor_id
+        WHERE d.department_id = #{departmentId}
+        GROUP BY r.rating
+        ORDER BY r.rating
+    </select>
+
+    <!-- 获取科室评分趋势 -->
+    <select id="getDepartmentRatingTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(r.created_at, #{dateFormat}) as date,
+            COUNT(r.review_id) as reviewCount,
+            ROUND(AVG(r.rating), 1) as averageRating,
+            SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM reviews r
+        JOIN doctors d ON r.doctor_id = d.doctor_id
+        WHERE d.department_id = #{departmentId}
+        AND r.created_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE_FORMAT(r.created_at, #{dateFormat})
+        ORDER BY date
+    </select>
+
+    <!-- 获取科室医生评分排名 -->
+    <select id="getDepartmentDoctorsRating" resultType="java.util.Map">
+        SELECT 
+            d.doctor_id,
+            d.name as doctor_name,
+            COUNT(r.review_id) as reviewCount,
+            ROUND(AVG(r.rating), 1) as averageRating,
+            SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM doctors d
+        LEFT JOIN reviews r ON d.doctor_id = r.doctor_id
+        WHERE d.department_id = #{departmentId}
+        GROUP BY d.doctor_id, d.name
+        HAVING reviewCount > 0
+        ORDER BY averageRating DESC, reviewCount DESC
+    </select>
+
+    <!-- 获取评分最高的医生 -->
+    <select id="getTopRatedDoctors" resultType="java.util.Map">
+        SELECT 
+            d.doctor_id,
+            d.name as doctor_name,
+            d.department_id,
+            dep.department_name,
+            COUNT(r.review_id) as reviewCount,
+            ROUND(AVG(r.rating), 1) as averageRating,
+            SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN r.rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM doctors d
+        LEFT JOIN departments dep ON d.department_id = dep.department_id
+        LEFT JOIN reviews r ON d.doctor_id = r.doctor_id
+        GROUP BY d.doctor_id, d.name, d.department_id, dep.department_name
+        HAVING reviewCount >= 5
+        ORDER BY averageRating DESC, reviewCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取评分分布 -->
+    <select id="getRatingDistribution" resultType="java.util.Map">
+        SELECT 
+            rating,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as percentage
+        FROM reviews
+        GROUP BY rating
+        ORDER BY rating
+    </select>
+
+    <!-- 获取评分趋势 -->
+    <select id="getRatingTrend" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(created_at, #{dateFormat}) as date,
+            COUNT(review_id) as reviewCount,
+            ROUND(AVG(rating), 1) as averageRating,
+            SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM reviews
+        WHERE created_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE_FORMAT(created_at, #{dateFormat})
+        ORDER BY date
+    </select>
+
+    <!-- 获取时间段评价统计 -->
+    <select id="getReviewStatsByTimeRange" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as totalReviews,
+            ROUND(AVG(rating), 1) as averageRating,
+            SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as highRatingCount,
+            ROUND(SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as satisfactionRate
+        FROM reviews
+        WHERE created_at BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+</mapper> 
