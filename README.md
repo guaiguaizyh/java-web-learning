@@ -1,5 +1,9 @@
-# Vue 3 + Vite
+#基于java的医生推荐系统
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
-
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+小编几乎都是使用cursor进行编写的，因为时间来不及了，15天完成的~完全没有封装，但是应付毕设还是狗狗的~
+混合算法：协同过滤+基于内容算法；
+引入智谱清言GLM-4大模型：AI客服以及自然语言处理；
+数据是虚拟生成的，但是还算是比较合理，职称的部分是直接按照年龄来写好在数据库中的，有兴趣的小伙伴可以自行编写~
+还有上传头像的功能~小编没时间整了~因此没有写~
+另外利用cursor写的代码很像一坨~但是懒得改了~前端完全就是element风格~
+jdk-17，springboot，Mybatis-plus，vue3。
